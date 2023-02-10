@@ -52,15 +52,11 @@ const serverlessConfiguration: AWS = {
             method: 'post',
             path: 'groups',
             cors: true,
-            reqValidatorName: 'RequestBodyValidator',
-            documentation: {
-              summary: 'Create a new group',
-              description: 'Create a new group',
-              requestModels: {
-                'application/json': 'GroupRequest'
+            request: {
+              schemas: {
+                'application/json': '${file(models/create-group-request.json)}'
               }
             }
-
           }
         }
       ]
@@ -69,18 +65,6 @@ const serverlessConfiguration: AWS = {
 
   resources: {
     Resources: {
-      RequestBodyValidator: {
-        Type: 'AWS::ApiGateway::RequestValidator',
-        Properties: {
-          Name: 'request-body-validator',
-          RestApiId: {
-            Ref: 'ApiGatewayRestApi'
-          },
-          ValidateRequestBody: true,
-          ValidateRequestParameters: false,
-        }
-      },
-
       GroupsDynamoDBTable: {
         Type: 'AWS::DynamoDB::Table',
         Properties: {
@@ -116,22 +100,7 @@ const serverlessConfiguration: AWS = {
       platform: 'node',
       concurrency: 10
     },
-    documentation: {
-      api: {
-        info: {
-          version: 'v1.0.0',
-          title: 'Udagram API',
-          description: 'Serverless application for image sharing',
-        }
-      },
-      models: [
-        {
-          name: 'GroupRequest',
-          contentType: 'application/json',
-          schema: "${file(models/create-group-request.json)}"
-        }
-      ]
-    }
+
   }
 };
 
