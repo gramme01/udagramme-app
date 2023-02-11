@@ -16,17 +16,24 @@ const serverlessConfiguration: AWS = {
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
       NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000',
-      GROUPS_TABLE: 'Groups-${self:provider.stage}'
+      GROUPS_TABLE: 'Groups-${self:provider.stage}',
+      IMAGES_TABLE: 'Images-${self:provider.stage}'
     },
     region: "${opt:region, 'us-east-1'}" as AWS['provider']['region'],
     stage: "${opt:stage, 'dev'}",
     iamRoleStatements: [
       {
         Effect: 'Allow',
-        Action: ['dynamodb:Scan', 'dynamodb:PutItem'],
+        Action: ['dynamodb:Scan', 'dynamodb:PutItem', 'dynamodb:GetItem'],
         Resource:
           'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GROUPS_TABLE}'
-      }
+      },
+      {
+        Effect: 'Allow',
+        Action: ['dynamodb:Query'],
+        Resource:
+          'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.IMAGES_TABLE}'
+      },
     ]
   },
 
@@ -60,6 +67,19 @@ const serverlessConfiguration: AWS = {
           }
         }
       ]
+    },
+
+    GetImages: {
+      handler: 'src/lambda/http/getImages.handler',
+      events: [
+        {
+          http: {
+            method: 'get',
+            path: 'groups/{groupId}/images',
+            cors: true,
+          }
+        }
+      ]
     }
   },
 
@@ -79,6 +99,34 @@ const serverlessConfiguration: AWS = {
             {
               AttributeName: 'id',
               KeyType: 'HASH'
+            }
+          ],
+          BillingMode: 'PAY_PER_REQUEST'
+        }
+      },
+
+      ImagesDynamoDBTable: {
+        Type: 'AWS::DynamoDB::Table',
+        Properties: {
+          TableName: '${self:provider.environment.IMAGES_TABLE}',
+          AttributeDefinitions: [
+            {
+              AttributeName: 'groupId',
+              AttributeType: 'S'
+            },
+            {
+              AttributeName: 'timestamp',
+              AttributeType: 'S'
+            }
+          ],
+          KeySchema: [
+            {
+              AttributeName: 'groupId',
+              KeyType: 'HASH'
+            },
+            {
+              AttributeName: 'timestamp',
+              KeyType: 'RANGE'
             }
           ],
           BillingMode: 'PAY_PER_REQUEST'
