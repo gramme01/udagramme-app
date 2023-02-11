@@ -17,7 +17,8 @@ const serverlessConfiguration: AWS = {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
       NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000',
       GROUPS_TABLE: 'Groups-${self:provider.stage}',
-      IMAGES_TABLE: 'Images-${self:provider.stage}'
+      IMAGES_TABLE: 'Images-${self:provider.stage}',
+      IMAGE_ID_INDEX: 'ImageIdIndex'
     },
     region: "${opt:region, 'us-east-1'}" as AWS['provider']['region'],
     stage: "${opt:stage, 'dev'}",
@@ -33,6 +34,12 @@ const serverlessConfiguration: AWS = {
         Action: ['dynamodb:Query'],
         Resource:
           'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.IMAGES_TABLE}'
+      },
+      {
+        Effect: 'Allow',
+        Action: ['dynamodb:Query'],
+        Resource:
+          'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.IMAGES_TABLE}/index/${self:provider.environment.IMAGE_ID_INDEX}'
       },
     ]
   },
@@ -80,6 +87,19 @@ const serverlessConfiguration: AWS = {
           }
         }
       ]
+    },
+
+    GetImage: {
+      handler: 'src/lambda/http/getImage.handler',
+      events: [
+        {
+          http: {
+            method: 'get',
+            path: 'images/{imageId}',
+            cors: true,
+          }
+        }
+      ]
     }
   },
 
@@ -117,6 +137,10 @@ const serverlessConfiguration: AWS = {
             {
               AttributeName: 'timestamp',
               AttributeType: 'S'
+            },
+            {
+              AttributeName: 'imageId',
+              AttributeType: 'S'
             }
           ],
           KeySchema: [
@@ -129,6 +153,18 @@ const serverlessConfiguration: AWS = {
               KeyType: 'RANGE'
             }
           ],
+          GlobalSecondaryIndexes: [{
+            IndexName: '${self:provider.environment.IMAGE_ID_INDEX}',
+            KeySchema: [
+              {
+                AttributeName: 'imageId',
+                KeyType: 'HASH'
+              }
+            ],
+            Projection: {
+              ProjectionType: 'ALL',
+            }
+          }],
           BillingMode: 'PAY_PER_REQUEST'
         }
       }
