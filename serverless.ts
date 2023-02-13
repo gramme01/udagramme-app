@@ -19,7 +19,8 @@ const serverlessConfiguration: AWS = {
       GROUPS_TABLE: 'Groups-${self:provider.stage}',
       IMAGES_TABLE: 'Images-${self:provider.stage}',
       IMAGE_ID_INDEX: 'ImageIdIndex',
-      IMAGES_S3_BUCKET: 'serverless-udagram-gramme-image-${self:provider.stage}'
+      IMAGES_S3_BUCKET: 'serverless-udagram-grammea-image-${self:provider.stage}',
+      SIGNED_URL_EXPIRATION: '300'
     },
     region: "${opt:region, 'us-east-1'}" as AWS['provider']['region'],
     stage: "${opt:stage, 'dev'}",
@@ -41,6 +42,12 @@ const serverlessConfiguration: AWS = {
         Action: ['dynamodb:Query'],
         Resource:
           'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.IMAGES_TABLE}/index/${self:provider.environment.IMAGE_ID_INDEX}'
+      },
+      {
+        Effect: 'Allow',
+        Action: ['s3:PutObject', 's3:GetObject'],
+        Resource:
+          'arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*'
       },
     ]
   },
