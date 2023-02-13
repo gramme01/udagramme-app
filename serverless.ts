@@ -18,7 +18,8 @@ const serverlessConfiguration: AWS = {
       NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000',
       GROUPS_TABLE: 'Groups-${self:provider.stage}',
       IMAGES_TABLE: 'Images-${self:provider.stage}',
-      IMAGE_ID_INDEX: 'ImageIdIndex'
+      IMAGE_ID_INDEX: 'ImageIdIndex',
+      IMAGES_S3_BUCKET: 'serverless-udagram-gramme-image-${self:provider.stage}'
     },
     region: "${opt:region, 'us-east-1'}" as AWS['provider']['region'],
     stage: "${opt:stage, 'dev'}",
@@ -184,6 +185,52 @@ const serverlessConfiguration: AWS = {
             }
           }],
           BillingMode: 'PAY_PER_REQUEST'
+        }
+      },
+
+      AttachmentsBucket: {
+        Type: "AWS::S3::Bucket",
+        Properties: {
+          BucketName: '${self:provider.environment.IMAGES_S3_BUCKET}',
+          CorsConfiguration: {
+            CorsRules: [
+              {
+
+                AllowedOrigins: ['*'],
+                AllowedHeaders: ['*'],
+                AllowedMethods: [
+                  'GET',
+                  'PUT',
+                  'POST',
+                  'DELETE',
+                  'HEAD'
+                ],
+                MaxAge: 3000
+              }
+            ]
+          }
+        }
+      },
+
+      BucketPolicy: {
+        Type: 'AWS::S3::BucketPolicy',
+        Properties: {
+          PolicyDocument: {
+            Id: 'MyPolicy',
+            Version: '2012-10-17',
+            Statement: [
+              {
+                Sid: 'PublicReadForGetBucketObjects',
+                Effect: 'Allow',
+                Principal: '*',
+                Action: 's3:GetObject',
+                Resource: 'arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*'
+              }
+            ]
+          },
+          Bucket: {
+            "Ref": "AttachmentsBucket"
+          }
         }
       }
     }
