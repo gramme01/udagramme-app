@@ -18,9 +18,10 @@ const serverlessConfiguration: AWS = {
       NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000',
       GROUPS_TABLE: 'Groups-${self:provider.stage}',
       IMAGES_TABLE: 'Images-${self:provider.stage}',
+      CONNECTIONS_TABLE: 'Connections-${self:provider.stage}',
       IMAGE_ID_INDEX: 'ImageIdIndex',
       IMAGES_S3_BUCKET: 'serverless-udagram-grammea-image-${self:provider.stage}',
-      SIGNED_URL_EXPIRATION: '300'
+      SIGNED_URL_EXPIRATION: '300',
     },
     region: "${opt:region, 'us-east-1'}" as AWS['provider']['region'],
     stage: "${opt:stage, 'dev'}",
@@ -48,6 +49,12 @@ const serverlessConfiguration: AWS = {
         Action: ['s3:PutObject', 's3:GetObject'],
         Resource:
           'arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*'
+      },
+      {
+        Effect: 'Allow',
+        Action: ['dynamodb:Scan', 'dynamodb:PutItem', 'dynamodb:DeleteItem'],
+        Resource:
+          'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}'
       },
     ]
   },
@@ -141,8 +148,30 @@ const serverlessConfiguration: AWS = {
           }
         }
       ]
+    },
 
-    }
+    ConnectHandler: {
+      handler: 'src/lambda/websocket/connect.handler',
+      events: [
+        {
+          websocket: {
+            route: '$connect'
+          }
+        }
+      ]
+    },
+
+    DisconnectHandler: {
+      handler: 'src/lambda/websocket/disconnect.handler',
+      events: [
+        {
+          websocket: {
+            route: '$disconnect'
+          }
+        }
+      ]
+    },
+
   },
 
   resources: {
@@ -207,6 +236,26 @@ const serverlessConfiguration: AWS = {
               ProjectionType: 'ALL',
             }
           }],
+          BillingMode: 'PAY_PER_REQUEST'
+        }
+      },
+
+      WebSocketConnectionsDynamoDBTable: {
+        Type: 'AWS::DynamoDB::Table',
+        Properties: {
+          TableName: '${self:provider.environment.CONNECTIONS_TABLE}',
+          AttributeDefinitions: [
+            {
+              AttributeName: 'id',
+              AttributeType: 'S'
+            }
+          ],
+          KeySchema: [
+            {
+              AttributeName: 'id',
+              KeyType: 'HASH'
+            }
+          ],
           BillingMode: 'PAY_PER_REQUEST'
         }
       },
