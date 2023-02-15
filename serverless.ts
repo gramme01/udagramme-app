@@ -127,6 +127,22 @@ const serverlessConfiguration: AWS = {
         }
       ]
     },
+
+    SendUploadNotifications: {
+      handler: 'src/lambda/s3/sendNotifications.handler',
+      events: [
+        {
+          s3: {
+            bucket: {
+              "Ref": "AttachmentsBucket"
+            },
+            event: 's3:ObjectCreated:*',
+            existing: true
+          }
+        }
+      ]
+
+    }
   },
 
   resources: {
