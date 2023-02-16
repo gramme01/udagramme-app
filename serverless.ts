@@ -178,6 +178,20 @@ const serverlessConfiguration: AWS = {
       ]
     },
 
+    SyncWithOpensearch: {
+      handler: 'src/lambda/dynamoDb/openSearchSync.handler',
+      events: [
+        {
+          stream: {
+            type: 'dynamodb',
+            arn: {
+              'Fn::GetAtt': ['ImagesDynamoDBTable', 'StreamArn']
+            }
+          }
+        }
+      ]
+    }
+
   },
 
   resources: {
@@ -242,7 +256,10 @@ const serverlessConfiguration: AWS = {
               ProjectionType: 'ALL',
             }
           }],
-          BillingMode: 'PAY_PER_REQUEST'
+          BillingMode: 'PAY_PER_REQUEST',
+          StreamSpecification: {
+            StreamViewType: "NEW_IMAGE",
+          }
         }
       },
 
