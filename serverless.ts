@@ -137,6 +137,12 @@ const serverlessConfiguration: AWS = {
 
     SendUploadNotifications: {
       handler: 'src/lambda/s3/sendNotifications.handler',
+      environment: {
+        STAGE: '${self:provider.stage}',
+        API_ID: {
+          Ref: 'WebsocketsApi'
+        }
+      },
       events: [
         {
           s3: {
