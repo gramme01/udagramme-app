@@ -178,19 +178,19 @@ const serverlessConfiguration: AWS = {
       ]
     },
 
-    SyncWithOpensearch: {
-      handler: 'src/lambda/dynamoDb/openSearchSync.handler',
-      events: [
-        {
-          stream: {
-            type: 'dynamodb',
-            arn: {
-              'Fn::GetAtt': ['ImagesDynamoDBTable', 'StreamArn']
-            }
-          }
-        }
-      ]
-    }
+    // SyncWithOpensearch: {
+    //   handler: 'src/lambda/dynamoDb/openSearchSync.handler',
+    //   events: [
+    //     {
+    //       stream: {
+    //         type: 'dynamodb',
+    //         arn: {
+    //           'Fn::GetAtt': ['ImagesDynamoDBTable', 'StreamArn']
+    //         }
+    //       }
+    //     }
+    //   ]
+    // }
 
   },
 
@@ -257,9 +257,9 @@ const serverlessConfiguration: AWS = {
             }
           }],
           BillingMode: 'PAY_PER_REQUEST',
-          StreamSpecification: {
-            StreamViewType: "NEW_IMAGE",
-          }
+          // StreamSpecification: {
+          //   StreamViewType: "NEW_IMAGE",
+          // }
         }
       },
 
