@@ -22,6 +22,7 @@ const serverlessConfiguration: AWS = {
       IMAGE_ID_INDEX: 'ImageIdIndex',
       IMAGES_S3_BUCKET: 'serverless-udagram-grammea-image-${self:provider.stage}',
       SIGNED_URL_EXPIRATION: '300',
+      THUMBNAILS_S3_BUCKET: 'serverless-udagram-thumbnaila-${self:provider.stage}',
     },
     region: "${opt:region, 'us-east-1'}" as AWS['provider']['region'],
     stage: "${opt:stage, 'dev'}",
@@ -49,6 +50,12 @@ const serverlessConfiguration: AWS = {
         Action: ['s3:PutObject', 's3:GetObject'],
         Resource:
           'arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*'
+      },
+      {
+        Effect: 'Allow',
+        Action: ['s3:PutObject'],
+        Resource:
+          'arn:aws:s3:::${self:provider.environment.THUMBNAILS_S3_BUCKET}/*'
       },
       {
         Effect: 'Allow',
@@ -135,6 +142,10 @@ const serverlessConfiguration: AWS = {
       ]
     },
 
+    ResizeImage: {
+      handler: 'src/lambda/s3/resizeImage.handler'
+    },
+
     SendUploadNotifications: {
       handler: 'src/lambda/s3/sendNotifications.handler',
       environment: {
@@ -145,12 +156,16 @@ const serverlessConfiguration: AWS = {
       },
       events: [
         {
-          s3: {
-            bucket: {
-              "Ref": "AttachmentsBucket"
+          sns: {
+            arn: {
+              'Fn::Join': [':', [
+                'arn:aws:sns',
+                { Ref: 'AWS::Region' },
+                { Ref: 'AWS::AccountId' },
+                '${self:custom.topicName}'
+              ]]
             },
-            event: 's3:ObjectCreated:*',
-            existing: true
+            topicName: '${self:custom.topicName}'
           }
         }
       ]
@@ -285,8 +300,19 @@ const serverlessConfiguration: AWS = {
 
       AttachmentsBucket: {
         Type: "AWS::S3::Bucket",
+        DependsOn: ['SNSTopicPolicy'],
         Properties: {
           BucketName: '${self:provider.environment.IMAGES_S3_BUCKET}',
+          NotificationConfiguration: {
+            TopicConfigurations: [
+              {
+                Event: 's3:ObjectCreated:Put',
+                Topic: {
+                  Ref: 'ImagesTopic'
+                }
+              }
+            ]
+          },
           CorsConfiguration: {
             CorsRules: [
               {
@@ -327,7 +353,46 @@ const serverlessConfiguration: AWS = {
             "Ref": "AttachmentsBucket"
           }
         }
-      }
+      },
+
+      SNSTopicPolicy: {
+        Type: 'AWS::SNS::TopicPolicy',
+        Properties: {
+          PolicyDocument: {
+            Version: '2012-10-17',
+            Statement: [
+              {
+                Effect: 'Allow',
+                Principal: {
+                  AWS: '*'
+                },
+                Action: 'sns:Publish',
+                Resource: {
+                  'Ref': 'ImagesTopic'
+                },
+                Condition: {
+                  ArnLike: {
+                    'AWS:SourceArn': 'arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}'
+                  }
+                }
+              }
+            ]
+          },
+          Topics: [
+            { 'Ref': 'ImagesTopic' }
+          ]
+        }
+      },
+
+      ImagesTopic: {
+        Type: 'AWS::SNS::Topic',
+        Properties: {
+          DisplayName: 'Image bucket topic',
+          TopicName: '${self:custom.topicName}'
+        }
+      },
+
+
     }
   },
 
@@ -345,6 +410,7 @@ const serverlessConfiguration: AWS = {
       concurrency: 10
     },
 
+    topicName: 'imagesTopic-${self:provider.stage}',
   }
 };
 
