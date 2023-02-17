@@ -20,7 +20,7 @@ const serverlessConfiguration: AWS = {
       IMAGES_TABLE: 'Images-${self:provider.stage}',
       CONNECTIONS_TABLE: 'Connections-${self:provider.stage}',
       IMAGE_ID_INDEX: 'ImageIdIndex',
-      IMAGES_S3_BUCKET: 'serverless-udagram-grammea-image-${self:provider.stage}',
+      IMAGES_S3_BUCKET: 'serverless-udagram-grammec-image-${self:provider.stage}',
       SIGNED_URL_EXPIRATION: '300',
     },
     region: "${opt:region, 'us-east-1'}" as AWS['provider']['region'],
@@ -180,6 +180,11 @@ const serverlessConfiguration: AWS = {
 
     SyncWithOpensearch: {
       handler: 'src/lambda/dynamoDb/openSearchSync.handler',
+      environment: {
+        'ES_ENDPOINT': {
+          'Fn::GetAtt': ['ImagesSearch', 'DomainEndpoint']
+        }
+      },
       events: [
         {
           stream: {
@@ -326,6 +331,67 @@ const serverlessConfiguration: AWS = {
           Bucket: {
             "Ref": "AttachmentsBucket"
           }
+        }
+      },
+
+      LambdaOpenSearchAccessRole: {
+        Type: 'AWS::IAM::Role',
+        Properties: {
+          AssumeRolePolicyDocument: {
+            Statement: [
+              {
+                Effect: 'Allow',
+                Principal: {
+                  Service: 'lambda.amazonaws.com'
+                },
+                Action: 'sts:AssumeRole'
+              }
+            ]
+          },
+          ManagedPolicyArns: [
+            'arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess',
+            'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+          ]
+        }
+      },
+
+      ImagesSearch: {
+        Type: 'AWS::OpenSearchService::Domain',
+        Properties: {
+          EngineVersion: 'Elasticsearch_7.9',
+          DomainName: 'images-search-${self:provider.stage}',
+          ClusterConfig: {
+            DedicatedMasterEnabled: false,
+            InstanceCount: 1,
+            ZoneAwarenessEnabled: false,
+            InstanceType: 't2.small.search'
+          },
+          EBSOptions: {
+            EBSEnabled: true,
+            Iops: 0,
+            VolumeSize: 10,
+            VolumeType: 'gp2'
+          },
+          AccessPolicies: {
+            Version: '2012-10-17',
+            Statement: [
+              {
+                Effect: 'Allow',
+                Principal: {
+                  AWS: {
+                    'Fn::GetAtt': ['LambdaOpenSearchAccessRole', 'Arn']
+                  },
+                },
+                Action: 'es:ESHttp*',
+                Resource: {
+                  'Fn::Sub': 'arn:aws:es:${self:provider.region}:${AWS::AccountId}:domain/images-search-${self:provider.stage}/*'
+                }
+              }
+            ],
+
+          },
+          // https://stackoverflow.com/questions/64426133/deployment-of-servless-app-fails-enable-fine-grained-access-control-or-apply-a
+
         }
       }
     }
