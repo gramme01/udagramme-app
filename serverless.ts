@@ -67,6 +67,11 @@ const serverlessConfiguration: AWS = {
   },
 
   functions: {
+
+    Auth: {
+      handler: 'src/lambda/auth/auth0Authorizer.handler'
+    },
+
     GetGroups: {
       handler: 'src/lambda/http/getGroups.handler',
       events: [
@@ -88,6 +93,7 @@ const serverlessConfiguration: AWS = {
             method: 'post',
             path: 'groups',
             cors: true,
+            authorizer: 'Auth',
             request: {
               schemas: {
                 'application/json': '${file(models/create-group-request.json)}'
@@ -132,6 +138,7 @@ const serverlessConfiguration: AWS = {
             method: 'post',
             path: 'groups/{groupId}/images',
             cors: true,
+            authorizer: 'Auth',
             request: {
               schemas: {
                 'application/json': '${file(models/create-image-request.json)}'
@@ -226,6 +233,22 @@ const serverlessConfiguration: AWS = {
 
   resources: {
     Resources: {
+
+      GatewayResponseDefault4XX: {
+        Type: 'AWS::ApiGateway::GatewayResponse',
+        Properties: {
+          ResponseParameters: {
+            'gatewayresponse.header.Access-Control-Allow-Origin': "'*'",
+            'gatewayresponse.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+            'gatewayresponse.header.Access-Control-Allow-Methods': "'GET,OPTIONS,POST'",
+          },
+          ResponseType: 'DEFAULT_4XX',
+          RestApiId: {
+            'Ref': 'ApiGatewayRestApi'
+          }
+        }
+      },
+
       GroupsDynamoDBTable: {
         Type: 'AWS::DynamoDB::Table',
         Properties: {
