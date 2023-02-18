@@ -143,7 +143,22 @@ const serverlessConfiguration: AWS = {
     },
 
     ResizeImage: {
-      handler: 'src/lambda/s3/resizeImage.handler'
+      handler: 'src/lambda/s3/resizeImage.handler',
+      events: [
+        {
+          sns: {
+            arn: {
+              'Fn::Join': [':', [
+                'arn:aws:sns',
+                { Ref: 'AWS::Region' },
+                { Ref: 'AWS::AccountId' },
+                '${self:custom.topicName}'
+              ]]
+            },
+            topicName: '${self:custom.topicName}'
+          }
+        }
+      ]
     },
 
     SendUploadNotifications: {
@@ -330,6 +345,14 @@ const serverlessConfiguration: AWS = {
               }
             ]
           }
+        }
+      },
+
+      ThumbnailsBucket:
+      {
+        Type: 'AWS::S3::Bucket',
+        Properties: {
+          BucketName: '${self:provider.environment.THUMBNAILS_S3_BUCKET}'
         }
       },
 
