@@ -82,6 +82,10 @@ const serverlessConfiguration: AWS = {
 
   functions: {
 
+    RS256Auth: {
+      handler: 'src/lambda/auth/rs256Auth0Authorizer.handler'
+    },
+
     Auth: {
       handler: 'src/lambda/auth/auth0Authorizer.handler'
     },

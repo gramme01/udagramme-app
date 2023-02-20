@@ -12,6 +12,7 @@
   "dependencies": {
     "jimp": "^0.22.4",
     "jsonwebtoken": "^9.0.0",
+    "middy": "^0.36.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
