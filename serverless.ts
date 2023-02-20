@@ -111,7 +111,7 @@ const serverlessConfiguration: AWS = {
             method: 'post',
             path: 'groups',
             cors: true,
-            authorizer: 'Auth',
+            authorizer: 'RS256Auth',
             request: {
               schemas: {
                 'application/json': '${file(models/create-group-request.json)}'
@@ -156,7 +156,7 @@ const serverlessConfiguration: AWS = {
             method: 'post',
             path: 'groups/{groupId}/images',
             cors: true,
-            authorizer: 'Auth',
+            authorizer: 'RS256Auth',
             request: {
               schemas: {
                 'application/json': '${file(models/create-image-request.json)}'
