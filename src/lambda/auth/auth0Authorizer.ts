@@ -3,13 +3,19 @@ import 'source-map-support/register';
 import { APIGatewayAuthorizerHandler, APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
 
 import { JwtToken } from 'src/auth/JwtToken';
+import { SecretsManager } from 'aws-sdk';
 import { verify } from 'jsonwebtoken';
 
-const auth0Secret = process.env.AUTH_0_SECRET;
+const secretId = process.env.AUTH_0_SECRET_ID;
+const secretField = process.env.AUTH_0_SECRET_FIELD;
+
+const client = new SecretsManager();
+
+let cachedSecret: string;
 
 export const handler: APIGatewayAuthorizerHandler = async (event: APIGatewayTokenAuthorizerEvent): Promise<APIGatewayAuthorizerResult> => {
     try {
-        const decodedToken = verifyToken(event.authorizationToken);
+        const decodedToken = await verifyToken(event.authorizationToken);
         console.log('User was authorized');
 
         return {
@@ -44,7 +50,7 @@ export const handler: APIGatewayAuthorizerHandler = async (event: APIGatewayToke
     }
 };
 
-function verifyToken(authHeader: string): JwtToken {
+async function verifyToken(authHeader: string): Promise<JwtToken> {
     if (!authHeader) {
         throw new Error('No authorization header');
     }
@@ -56,7 +62,21 @@ function verifyToken(authHeader: string): JwtToken {
     const split = authHeader.split(' ');
     const token = split[1];
 
-    return verify(token, auth0Secret) as JwtToken;
+    const secretObject: any = await getSecret();
+    const secret = secretObject[secretField];
+
+    return verify(token, secret) as JwtToken;
 
     // A request has been authorized
+}
+
+async function getSecret() {
+    if (cachedSecret) return cachedSecret;
+
+    const data = await client.getSecretValue({
+        SecretId: secretId
+    }).promise();
+
+    cachedSecret = data.SecretString;
+    return JSON.parse(cachedSecret);
 }

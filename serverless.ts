@@ -23,7 +23,8 @@ const serverlessConfiguration: AWS = {
       IMAGES_S3_BUCKET: 'serverless-udagram-grammea-image-${self:provider.stage}',
       SIGNED_URL_EXPIRATION: '300',
       THUMBNAILS_S3_BUCKET: 'serverless-udagram-thumbnaila-${self:provider.stage}',
-      AUTH_0_SECRET: 'NpUQ1XKgQhhuizEOaIxuhAvuMKltZ57JWf_Ao_alAXQMksVimtMHPXTdyunNty_H',
+      AUTH_0_SECRET_ID: 'Auth0Secret-${self:provider.stage}',
+      AUTH_0_SECRET_FIELD: 'auth0Secret'
     },
     region: "${opt:region, 'us-east-1'}" as AWS['provider']['region'],
     stage: "${opt:stage, 'dev'}",
@@ -63,6 +64,18 @@ const serverlessConfiguration: AWS = {
         Action: ['dynamodb:Scan', 'dynamodb:PutItem', 'dynamodb:DeleteItem'],
         Resource:
           'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}'
+      },
+      {
+        Effect: 'Allow',
+        Action: ['secretsmanager:GetSecretValue'],
+        Resource:
+          { Ref: 'Auth0Secret' }
+      },
+      {
+        Effect: 'Allow',
+        Action: ['kms:Decrypt'],
+        Resource:
+          { 'Fn::GetAtt': ['KMSKey', 'Arn'] }
       },
     ]
   },
@@ -438,6 +451,55 @@ const serverlessConfiguration: AWS = {
           TopicName: '${self:custom.topicName}'
         }
       },
+
+      KMSKey: {
+        Type: 'AWS::KMS::Key',
+        Properties: {
+          Description: 'KMS key to encrypt Auth0 secret',
+          KeyPolicy: {
+            Version: '2012-10-17',
+            Id: 'key-default-1',
+            Statement: [
+              {
+                Sid: 'Allow administration of the key',
+                Effect: 'Allow',
+                Principal: {
+                  AWS: {
+                    'Fn::Join': [':', [
+                      'arn:aws:iam:',
+                      { Ref: 'AWS::AccountId' },
+                      'root'
+                    ]]
+                  }
+                },
+                Action: ['kms:*'],
+                Resource: '*'
+              }
+            ]
+          }
+        }
+      },
+
+      KMSKeyAlias: {
+        Type: 'AWS::KMS::Alias',
+        Properties: {
+          AliasName: 'alias/auth0Key-${self:provider.stage}',
+          TargetKeyId: {
+            Ref: 'KMSKey'
+          }
+        }
+      },
+
+      Auth0Secret: {
+        Type: 'AWS::SecretsManager::Secret',
+        Properties: {
+          Name: '${self:provider.environment.AUTH_0_SECRET_ID}',
+          Description: 'Auth0 secret',
+          KmsKeyId: {
+            Ref: 'KMSKey'
+          }
+        }
+      }
 
 
     }
