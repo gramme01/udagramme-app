@@ -23,6 +23,7 @@ const serverlessConfiguration: AWS = {
       IMAGES_S3_BUCKET: 'serverless-udagram-grammea-image-${self:provider.stage}',
       SIGNED_URL_EXPIRATION: '300',
       THUMBNAILS_S3_BUCKET: 'serverless-udagram-thumbnaila-${self:provider.stage}',
+      AUTH_0_SECRET: 'NpUQ1XKgQhhuizEOaIxuhAvuMKltZ57JWf_Ao_alAXQMksVimtMHPXTdyunNty_H',
     },
     region: "${opt:region, 'us-east-1'}" as AWS['provider']['region'],
     stage: "${opt:stage, 'dev'}",
