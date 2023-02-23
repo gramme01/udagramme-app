@@ -5,6 +5,9 @@ const serverlessConfiguration: AWS = {
   frameworkVersion: '3',
   plugins: [
     'serverless-esbuild',
+    'serverless-dynamodb-local',
+    'serverless-offline',
+    'serverless-plugin-canary-deployments',
   ],
   provider: {
     name: 'aws',
@@ -77,6 +80,11 @@ const serverlessConfiguration: AWS = {
         Resource:
           { 'Fn::GetAtt': ['KMSKey', 'Arn'] }
       },
+      // {
+      //   Effect: 'Allow',
+      //   Action: ['codedeploy:*'],
+      //   Resource: ['*'],
+      // },
     ]
   },
 
@@ -512,6 +520,8 @@ const serverlessConfiguration: AWS = {
   package: { individually: true },
 
   custom: {
+    topicName: 'imagesTopic-${self:provider.stage}',
+
     esbuild: {
       bundle: true,
       minify: false,
@@ -523,8 +533,25 @@ const serverlessConfiguration: AWS = {
       concurrency: 10
     },
 
-    topicName: 'imagesTopic-${self:provider.stage}',
-  }
+    dynamodb: {
+      start: {
+        port: 8000,
+        imMemory: true,
+        migrate: true
+      },
+      stages: ['dev']
+    },
+
+    'serverless-offline': {
+      httpPort: 3003
+    },
+
+    // deploymentSettings: {
+    //   type: 'Linear10PercentEvery1Minute',
+    //   alias: 'Live'
+    // }
+
+  },
 };
 
 module.exports = serverlessConfiguration;
