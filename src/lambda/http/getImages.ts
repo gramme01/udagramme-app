@@ -1,10 +1,14 @@
 import 'source-map-support/register';
 
 import * as AWS from 'aws-sdk';
+import * as AWSXRay from 'aws-xray-sdk';
 
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
 
-const docClient = new AWS.DynamoDB.DocumentClient();
+const XAWS = AWSXRay.captureAWS(AWS);
+
+
+const docClient = new XAWS.DynamoDB.DocumentClient();
 const groupTable = process.env.GROUPS_TABLE;
 const imagesTable = process.env.IMAGES_TABLE;
 

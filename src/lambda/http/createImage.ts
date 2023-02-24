@@ -1,6 +1,7 @@
 import 'source-map-support/register';
 
 import * as AWS from 'aws-sdk';
+import * as AWSXRay from 'aws-xray-sdk';
 
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 
@@ -8,9 +9,11 @@ import { cors } from 'middy/middlewares';
 import middy from 'middy';
 import { v4 as uuidv4 } from 'uuid';
 
-const docClient = new AWS.DynamoDB.DocumentClient();
+const XAWS = AWSXRay.captureAWS(AWS);
 
-const s3 = new AWS.S3({
+const docClient = new XAWS.DynamoDB.DocumentClient();
+
+const s3 = new XAWS.S3({
     signatureVersion: 'v4',
 });
 
